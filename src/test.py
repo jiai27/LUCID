@@ -38,6 +38,7 @@ import numpy as np
 # If you have multiple cameras, this may need to be changed to 1, 2, etc.
 CAMERA_INDEX = 0
 
+MAX_white_channel_threshold = 255
 # Desired camera resolution.
 # Lower resolution = faster processing.
 # Higher resolution = more detail but slower.
@@ -67,8 +68,15 @@ BRIGHTNESS_THRESHOLD = 150
 #
 # Example:
 # R = 245, G = 240, B = 238 would be white-ish.
-WHITE_CHANNEL_THRESHOLD = 100
+white_channel_threshold = 100
 
+def change_thresh1(val):
+    global white_channel_threshold
+    white_channel_threshold = val
+
+def change_thresh2(val):
+    global yellow_tint_strength
+    yellow_tint_strength = val / 100
 # Color balance tolerance:
 # True white has R, G, and B values close to each other.
 #
@@ -96,7 +104,7 @@ DIM_FACTOR = 0.45
 # 1.0 = fully replace selected pixels with yellow target color
 #
 # A value between 0.2 and 0.5 usually looks more natural.
-YELLOW_TINT_STRENGTH = 0.45
+yellow_tint_strength = 0.45
 
 # Target yellow color in BGR format.
 #
@@ -134,6 +142,7 @@ if not camera.isOpened():
 ###############################################################################
 # MAIN PROCESSING LOOP
 ###############################################################################
+i = 0;
 
 while True:
 
@@ -205,9 +214,9 @@ while True:
     ###########################################################################
 
     # A white-ish pixel should have high red, green, and blue values.
-    high_red = red_channel > WHITE_CHANNEL_THRESHOLD
-    high_green = green_channel > WHITE_CHANNEL_THRESHOLD
-    high_blue = blue_channel > WHITE_CHANNEL_THRESHOLD
+    high_red = red_channel > white_channel_threshold
+    high_green = green_channel > white_channel_threshold
+    high_blue = blue_channel > white_channel_threshold
 
     # Check whether the color channels are close to each other.
     #
@@ -280,8 +289,8 @@ while True:
     # This avoids harsh color replacement and creates a smoother filter effect.
     #
     tinted_pixels = (
-        dimmed_pixels.astype(np.float32) * (1.0 - YELLOW_TINT_STRENGTH) +
-        TARGET_YELLOW_BGR.astype(np.float32) * YELLOW_TINT_STRENGTH
+        dimmed_pixels.astype(np.float32) * (1.0 - yellow_tint_strength) +
+        TARGET_YELLOW_BGR.astype(np.float32) * yellow_tint_strength
     ).astype(np.uint8)
 
     # Put the modified pixels back into the output image.
@@ -308,6 +317,10 @@ while True:
     cv2.imshow("Brightness / White Detection Mask", mask_display)
     cv2.imshow("Filtered Output Feed", output_frame)
 
+    if i == 0:
+        cv2.createTrackbar("Brightness", "Filtered Output Feed", 0, MAX_white_channel_threshold, change_thresh1)
+        cv2.createTrackbar("Tint STrenght", "Filtered Output Feed", 0, 500, change_thresh2)
+        i += 1
 
     ###########################################################################
     # STEP 12: EXIT CONDITION
